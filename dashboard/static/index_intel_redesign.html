@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bimanual VLA Manipulation — Intel Physical AI Challenge</title>
+<style>
+  :root {
+    --intel-blue: #0071C5;
+    --intel-blue-bright: #00A3E0;
+    --intel-navy: #001E41;
+    --bg: #06090f;
+    --panel: #0d1420;
+    --panel-2: #101828;
+    --border: #1c2938;
+    --text: #eaf1f8;
+    --muted: #7f93a8;
+    --confirm: #3ddc84;
+    --dispute: #ff5c6c;
+    --warn: #f5b942;
+    --pending: #2a3a4d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(0,113,197,0.12), transparent 45%),
+      radial-gradient(circle at 85% 100%, rgba(0,163,224,0.08), transparent 45%),
+      var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    padding: 22px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--intel-blue), var(--intel-blue-bright));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 15px; color: white; flex-shrink: 0;
+  }
+  header h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  header p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+  .platform-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge-pill {
+    font-size: 11px; font-weight: 600; padding: 5px 11px; border-radius: 20px;
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .badge-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--intel-blue-bright); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr 320px;
+    gap: 18px;
+    padding: 22px 32px 32px;
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .panel h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel h2::before {
+    content: ""; width: 3px; height: 12px; background: var(--intel-blue-bright);
+    border-radius: 2px; display: inline-block;
+  }
+
+  textarea {
+    width: 100%; min-height: 72px;
+    background: #060b12; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 11px; font-size: 14px; resize: vertical;
+    font-family: inherit;
+  }
+  textarea:focus { outline: none; border-color: var(--intel-blue-bright); }
+  button.run {
+    margin-top: 10px; width: 100%; padding: 11px; border: none; border-radius: 8px;
+    background: linear-gradient(135deg, var(--intel-blue), var(--intel-blue-bright));
+    color: white; font-size: 14px; font-weight: 700; cursor: pointer;
+    letter-spacing: 0.01em;
+  }
+  button.run:disabled { opacity: 0.45; cursor: not-allowed; }
+  .examples { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .examples button {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
+    text-align: left; font-size: 12px; padding: 9px 10px; border-radius: 7px; cursor: pointer;
+  }
+  .conn { margin-top: 16px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .conn .dot.up { background: var(--confirm); box-shadow: 0 0 8px var(--confirm); }
+  .conn .dot.down { background: var(--dispute); }
+
+  /* Camera panel */
+  .cam-frame {
+    aspect-ratio: 4/3; background: #020408; border-radius: 10px; border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .cam-frame img { width: 100%; height: 100%; object-fit: cover; display: none; }
+  .cam-placeholder { text-align: center; color: var(--muted); padding: 20px; }
+  .cam-placeholder .icon { font-size: 28px; margin-bottom: 8px; opacity: 0.5; }
+  .cam-placeholder .label { font-size: 12px; line-height: 1.5; }
+  .cam-tag {
+    position: absolute; top: 10px; left: 10px; font-size: 10px; font-weight: 700;
+    background: rgba(0,0,0,0.6); padding: 4px 9px; border-radius: 20px; color: var(--warn);
+    letter-spacing: 0.04em; border: 1px solid rgba(245,185,66,0.3);
+  }
+
+  .arm-status { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .arm-card {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 9px; padding: 12px;
+  }
+  .arm-card .arm-name { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; }
+  .arm-card .arm-state { font-size: 15px; font-weight: 700; margin-top: 4px; }
+  .arm-card .arm-holding { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  /* Center: plan + log */
+  .overall {
+    margin-bottom: 16px; padding: 13px; border-radius: 9px; font-weight: 700;
+    text-align: center; display: none; font-size: 14px;
+  }
+  .overall.success { display: block; background: rgba(61,220,132,0.12); color: var(--confirm); border: 1px solid rgba(61,220,132,0.25); }
+  .overall.failed { display: block; background: rgba(255,92,108,0.12); color: var(--dispute); border: 1px solid rgba(255,92,108,0.25); }
+
+  .steps { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+  .step {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 13px; border: 1px solid var(--border); border-radius: 9px;
+    background: var(--panel-2);
+  }
+  .badge {
+    font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .badge.pending { background: var(--pending); color: var(--muted); }
+  .badge.running { background: rgba(0,163,224,0.18); color: var(--intel-blue-bright); }
+  .badge.confirm { background: rgba(61,220,132,0.15); color: var(--confirm); }
+  .badge.dispute { background: rgba(255,92,108,0.15); color: var(--dispute); }
+  .step .action { font-weight: 600; }
+  .step .meta { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+  .log {
+    background: #04080d; border: 1px solid var(--border); border-radius: 9px;
+    padding: 13px; height: 300px; overflow-y: auto; font-family: "SF Mono", Menlo, monospace;
+    font-size: 12px; line-height: 1.65;
+  }
+  .log .line { white-space: pre-wrap; word-break: break-word; }
+  .log .tag-CONFIRM { color: var(--confirm); }
+  .log .tag-DISPUTE { color: var(--dispute); }
+  .log .tag-warn { color: var(--warn); }
+  .log .tag-muted { color: var(--muted); }
+
+  /* Right: robustness + optimization panels */
+  .metric-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .metric-row:last-child { border-bottom: none; }
+  .metric-row .label { font-size: 12.5px; color: var(--muted); }
+  .metric-row .value { font-size: 13px; font-weight: 700; }
+  .metric-row .value.tbd { color: var(--muted); font-weight: 400; font-style: italic; }
+
+  footer {
+    text-align: center; padding: 20px; color: var(--muted); font-size: 11.5px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">SO</div>
+    <div>
+      <h1>Bimanual VLA Manipulation — Dinner Table</h1>
+      <p>Dual SO-101 · MuJoCo · LLM planner + classical IK · OpenVINO edge inference (in progress)</p>
+    </div>
+  </div>
+  <div class="platform-badges">
+    <span class="badge-pill"><span class="dot"></span>Intel Physical AI Challenge</span>
+    <span class="badge-pill"><span class="dot"></span>OpenVINO target</span>
+    <span class="badge-pill"><span class="dot"></span>Core Ultra Series 2/3</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: command + connection -->
+  <div class="panel">
+    <h2>Command</h2>
+    <textarea id="command" placeholder="e.g. open the drawer, pick up the plate with the right arm, hand the cup to the left arm"></textarea>
+    <button class="run" id="runBtn">Run</button>
+
+    <div class="examples">
+      <button data-cmd="open the drawer">Open the drawer</button>
+      <button data-cmd="pick up the plate with the right arm">Pick up the plate</button>
+      <button data-cmd="hand the cup from the right arm to the left arm">Hand off the cup</button>
+      <button data-cmd="pour water into the mug">Try an unsupported task</button>
+    </div>
+
+    <div class="conn">
+      <span class="dot" id="connDot"></span>
+      <span id="connText">not connected — backend pending</span>
+    </div>
+  </div>
+
+  <!-- CENTER: camera + plan + log -->
+  <div class="panel">
+    <h2>Scene Observation (table_cam)</h2>
+    <div class="cam-frame">
+      <span class="cam-tag">● VISION PIPELINE IN PROGRESS</span>
+      <img id="camImg" alt="table_cam feed">
+      <div class="cam-placeholder" id="camPlaceholder">
+        <div class="icon">◎</div>
+        <div class="label">table_cam exists in the MuJoCo scene and renders correctly.<br>
+        Nothing streams it here yet — perception + OpenVINO work not started.<br>
+        See ARCHITECTURE.md for the planned pipeline.</div>
+      </div>
+    </div>
+
+    <h2>Arm Status</h2>
+    <div class="arm-status" style="margin-bottom:18px;">
+      <div class="arm-card">
+        <div class="arm-name">Left SO-101</div>
+        <div class="arm-state" id="leftState">Idle</div>
+        <div class="arm-holding" id="leftHolding">holding: nothing</div>
+      </div>
+      <div class="arm-card">
+        <div class="arm-name">Right SO-101</div>
+        <div class="arm-state" id="rightState">Idle</div>
+        <div class="arm-holding" id="rightHolding">holding: nothing</div>
+      </div>
+    </div>
+
+    <h2>Plan &amp; Verification</h2>
+    <div class="overall" id="overall"></div>
+    <div class="steps" id="steps"></div>
+
+    <h2>Event Log</h2>
+    <div class="log" id="log">
+      <div class="line tag-muted">[system] Dashboard redesign loaded. Not yet wired to a live backend —
+this is a visual/structural upgrade only. See so101_scene/STATUS.md for
+what's actually running right now.</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: robustness + Intel optimization panels -->
+  <div class="panel">
+    <h2>Robustness (10-seed protocol)</h2>
+    <div class="metric-row"><span class="label">Seeds run</span><span class="value tbd">not started</span></div>
+    <div class="metric-row"><span class="label">Success rate</span><span class="value tbd">—</span></div>
+    <div class="metric-row"><span class="label">Placement randomization</span><span class="value tbd">planned</span></div>
+    <div class="metric-row"><span class="label">Friction / weight randomization</span><span class="value tbd">planned</span></div>
+    <div class="metric-row"><span class="label">Lighting randomization</span><span class="value tbd">planned</span></div>
+
+    <h2 style="margin-top:22px;">OpenVINO / Intel Core Ultra</h2>
+    <div class="metric-row"><span class="label">Model converted</span><span class="value tbd">not started</span></div>
+    <div class="metric-row"><span class="label">Device</span><span class="value tbd">—</span></div>
+    <div class="metric-row"><span class="label">Latency (p50)</span><span class="value tbd">—</span></div>
+    <div class="metric-row"><span class="label">Throughput</span><span class="value tbd">—</span></div>
+    <div class="metric-row"><span class="label">Precision</span><span class="value tbd">—</span></div>
+    <div class="metric-row"><span class="label">Hardware</span><span class="value tbd">AI PC Cloud (pending access)</span></div>
+  </div>
+
+</div>
+
+<footer>
+  Intel Physical AI Online Challenge — Bimanual VLA Manipulation with Multi-Modal Reasoning ·
+  This panel reflects real current status, including what isn't built yet — see README.md and STATUS.md.
+</footer>
+
+<script>
+/*
+ * STRUCTURAL SCAFFOLD ONLY -- this file is not wired to a live WebSocket
+ * backend yet, unlike the working dashboard in dashboard/server.py which
+ * talks to the ALOHA-era pipeline. The event handlers below show the
+ * intended shape of the wiring (matching the same event schema as the
+ * existing dashboard: planning/plan/step_start/attempt_result/step_result/
+ * plan_result/error) so connecting a real backend later is a small,
+ * mechanical change, not a redesign.
+ */
+const logEl = document.getElementById('log');
+const stepsEl = document.getElementById('steps');
+const overallEl = document.getElementById('overall');
+const connDot = document.getElementById('connDot');
+const connText = document.getElementById('connText');
+const runBtn = document.getElementById('runBtn');
+const commandEl = document.getElementById('command');
+
+function logLine(text, cls) {
+  const div = document.createElement('div');
+  div.className = 'line' + (cls ? ' ' + cls : '');
+  const ts = new Date().toLocaleTimeString();
+  div.textContent = `[${ts}] ${text}`;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// Placeholder: no backend connected. Once the SO-101 executor + dashboard
+// server exist, replace this block with the same WebSocket pattern used in
+// dashboard/server.py (connect, send {command}, handle incoming events).
+runBtn.addEventListener('click', () => {
+  const command = commandEl.value.trim();
+  if (!command) return;
+  logLine(`Command submitted: "${command}" -- no backend connected yet, nothing executed.`, 'tag-warn');
+});
+
+document.querySelectorAll('.examples button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    commandEl.value = btn.dataset.cmd;
+  });
+});
+</script>
+</body>
+</html>

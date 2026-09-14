@@ -1,0 +1,15 @@
+# Sim
+mujoco
+mink
+dm_control
+
+# Planner
+groq
+python-dotenv
+
+# Dashboard
+fastapi
+uvicorn[standard]
+websockets
+
+numpy

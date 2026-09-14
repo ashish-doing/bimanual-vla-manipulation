@@ -1,0 +1,17 @@
+# Render Blueprint (Docker-based deploy) -- https://render.com/docs/blueprint-spec
+# Deploy: push this repo to GitHub, then in Render "New +" -> "Blueprint",
+# point it at the repo. It will build the Dockerfile and set GROQ_API_KEY
+# from what you enter in the dashboard (marked sync:false so it isn't
+# committed to the repo).
+services:
+  - type: web
+    name: bimanual-vla-dashboard
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: MUJOCO_GL
+        value: osmesa
+    healthCheckPath: /health

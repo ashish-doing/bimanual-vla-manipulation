@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bimanual VLA Planner — Live Dashboard</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --border: #232733;
+    --text: #e6e8ee;
+    --muted: #8891a3;
+    --accent: #5b8cff;
+    --confirm: #3ddc84;
+    --dispute: #ff5c6c;
+    --warn: #f5b942;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    padding: 20px 28px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    padding: 20px 28px 28px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .panel h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 70px;
+    background: #090b10;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px;
+    font-size: 14px;
+    resize: vertical;
+    font-family: inherit;
+  }
+  button {
+    margin-top: 10px;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .examples { margin-top: 14px; }
+  .examples button.example {
+    background: #1b2030;
+    color: var(--muted);
+    font-weight: 400;
+    text-align: left;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .conn {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.up { background: var(--confirm); }
+  .dot.down { background: var(--dispute); }
+
+  .steps { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .step {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: #0e1117;
+  }
+  .badge {
+    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .badge.pending { background: #232733; color: var(--muted); }
+  .badge.running { background: #2b3550; color: var(--accent); }
+  .badge.confirm { background: rgba(61,220,132,0.15); color: var(--confirm); }
+  .badge.dispute { background: rgba(255,92,108,0.15); color: var(--dispute); }
+  .step .action { font-weight: 600; }
+  .step .meta { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+  .overall {
+    margin-bottom: 16px; padding: 12px; border-radius: 8px; font-weight: 700;
+    text-align: center; display: none;
+  }
+  .overall.success { display: block; background: rgba(61,220,132,0.12); color: var(--confirm); }
+  .overall.failed { display: block; background: rgba(255,92,108,0.12); color: var(--dispute); }
+
+  .log {
+    background: #060708; border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; height: 360px; overflow-y: auto; font-family: "SF Mono", Menlo, monospace;
+    font-size: 12px; line-height: 1.6;
+  }
+  .log .line { white-space: pre-wrap; word-break: break-word; }
+  .log .tag-CONFIRM { color: var(--confirm); }
+  .log .tag-DISPUTE { color: var(--dispute); }
+  .log .tag-warn { color: var(--warn); }
+  .log .tag-muted { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bimanual VLA Planner — Live Dashboard</h1>
+  <p>LLM planner + classical IK execution. Not a trained VLA model — see the plan tree below for exactly what ran.</p>
+</header>
+
+<div class="layout">
+  <div class="panel">
+    <h2>Command</h2>
+    <textarea id="command" placeholder="e.g. open the drawer, then hand the block to the left arm"></textarea>
+    <button id="runBtn">Run</button>
+
+    <div class="examples">
+      <button class="example" data-cmd="open the drawer">Open the drawer</button>
+      <button class="example" data-cmd="hand the block from the right arm to the left arm">Hand off the block</button>
+      <button class="example" data-cmd="open the drawer, then hand off the block">Drawer, then handoff</button>
+      <button class="example" data-cmd="pour water into the cup">Try an unsupported task</button>
+    </div>
+
+    <div class="conn">
+      <span class="dot" id="connDot"></span>
+      <span id="connText">connecting…</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Plan &amp; Verification</h2>
+    <div class="overall" id="overall"></div>
+    <div class="steps" id="steps"></div>
+    <h2>Event Log</h2>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<script>
+const logEl = document.getElementById('log');
+const stepsEl = document.getElementById('steps');
+const overallEl = document.getElementById('overall');
+const connDot = document.getElementById('connDot');
+const connText = document.getElementById('connText');
+const runBtn = document.getElementById('runBtn');
+const commandEl = document.getElementById('command');
+
+let ws;
+let stepState = [];
+
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws/run`);
+
+  ws.onopen = () => {
+    connDot.className = 'dot up';
+    connText.textContent = 'connected';
+    runBtn.disabled = false;
+  };
+  ws.onclose = () => {
+    connDot.className = 'dot down';
+    connText.textContent = 'disconnected — retrying…';
+    runBtn.disabled = true;
+    setTimeout(connect, 1500);
+  };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (ev) => handleEvent(JSON.parse(ev.data));
+}
+
+function logLine(text, cls) {
+  const div = document.createElement('div');
+  div.className = 'line' + (cls ? ' ' + cls : '');
+  const ts = new Date().toLocaleTimeString();
+  div.textContent = `[${ts}] ${text}`;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function renderSteps() {
+  stepsEl.innerHTML = '';
+  stepState.forEach((s) => {
+    const row = document.createElement('div');
+    row.className = 'step';
+    row.innerHTML = `
+      <span class="badge ${s.badgeClass}">${s.badgeText}</span>
+      <span class="action">${s.action}</span>
+      <span class="meta">${s.meta || ''}</span>
+    `;
+    stepsEl.appendChild(row);
+  });
+}
+
+function handleEvent(e) {
+  switch (e.type) {
+    case 'planning':
+      overallEl.className = 'overall';
+      stepState = [];
+      renderSteps();
+      logLine(`Planning for: "${e.command}"`, 'tag-muted');
+      break;
+
+    case 'plan':
+      stepState = e.plan.steps.map(s => ({
+        action: s.action, badgeClass: 'pending', badgeText: 'pending', meta: s.reason || ''
+      }));
+      renderSteps();
+      logLine(`Plan: ${e.plan.steps.map(s => s.action).join(' → ') || '(no valid steps)'}`, 'tag-muted');
+      if (e.plan.unsupported) logLine(`⚠ ${e.plan.unsupported}`, 'tag-warn');
+      break;
+
+    case 'unsupported':
+      logLine(`⚠ ${e.message}`, 'tag-warn');
+      break;
+
+    case 'step_start':
+      stepState[e.index].badgeClass = 'running';
+      stepState[e.index].badgeText = 'running';
+      renderSteps();
+      logLine(`Step ${e.index + 1} (${e.action}): starting`, 'tag-muted');
+      break;
+
+    case 'attempt_result':
+      logLine(`Step ${e.index + 1} (${e.action}) attempt ${e.attempt}: ${e.tag} — ${JSON.stringify(e.state)}`,
+              e.tag === 'CONFIRM' ? 'tag-CONFIRM' : 'tag-DISPUTE');
+      break;
+
+    case 'step_result':
+      stepState[e.index].badgeClass = e.success ? 'confirm' : 'dispute';
+      stepState[e.index].badgeText = e.success ? 'CONFIRM' : 'DISPUTE';
+      stepState[e.index].meta = `${e.attempts_used} attempt(s)`;
+      renderSteps();
+      break;
+
+    case 'plan_result':
+      overallEl.className = 'overall ' + (e.overall === 'SUCCESS' ? 'success' : 'failed');
+      overallEl.textContent = e.overall === 'SUCCESS' ? '✓ PLAN SUCCEEDED' : `✗ PLAN FAILED — ${e.reason}`;
+      logLine(`Result: ${e.overall}${e.reason ? ' — ' + e.reason : ''}`,
+              e.overall === 'SUCCESS' ? 'tag-CONFIRM' : 'tag-DISPUTE');
+      runBtn.disabled = false;
+      break;
+
+    case 'error':
+      logLine(`ERROR: ${e.message}`, 'tag-DISPUTE');
+      runBtn.disabled = false;
+      break;
+  }
+}
+
+function run() {
+  const command = commandEl.value.trim();
+  if (!command || ws.readyState !== WebSocket.OPEN) return;
+  runBtn.disabled = true;
+  ws.send(JSON.stringify({ command }));
+}
+
+runBtn.addEventListener('click', run);
+commandEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) run();
+});
+document.querySelectorAll('.example').forEach(btn => {
+  btn.addEventListener('click', () => {
+    commandEl.value = btn.dataset.cmd;
+    run();
+  });
+});
+
+connect();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+mujoco_menagerie/
+.env
+.git/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.mp4
+*.egg-info/
