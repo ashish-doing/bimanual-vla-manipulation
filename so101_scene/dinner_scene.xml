@@ -1,5 +1,5 @@
 <mujoco model="MuJoCo Model">
-  <compiler angle="radian" meshdir="/home/ashish-doing/projects/bimanual-hackathon/so101_scene/assets/"/>
+  <compiler angle="radian" meshdir="/home/claude/bimanual-hackathon/so101_scene/assets/"/>
 
   <default>
     <default class="left_main">
@@ -231,7 +231,7 @@
       <joint type="free"/>
       <geom size="0.006 0.04" type="capsule" friction="1 0.5 0.5" rgba="0.75 0.75 0.78 1" mass="0.02"/>
     </body>
-    <body name="fork" pos="-0.16 -0.21 0.4">
+    <body name="fork" pos="-0.16 -0.19 0.4">
       <joint type="free"/>
       <geom size="0.006 0.04" type="capsule" friction="1 0.5 0.5" rgba="0.8 0.8 0.82 1" mass="0.02"/>
     </body>

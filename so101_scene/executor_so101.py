@@ -20,6 +20,8 @@ def _run_step(model, data, configuration, step):
         return prim.run_drawer_open_task(model, data, configuration, verbose=False)
     elif action == "pickup":
         return prim.run_pickup_task(model, data, configuration, step["arm"], step["object"], verbose=False)
+    elif action == "handoff":
+        return prim.run_handoff_task(model, data, configuration, step["object"], verbose=False)
     raise ValueError(f"unsupported action reached executor: {action}")
 
 
@@ -40,7 +42,10 @@ def run_plan(model, data, configuration, plan, on_event=None):
     step_results = []
     for i, step in enumerate(steps):
         action = step["action"]
-        label = action if action == "drawer_open" else f"pickup({step['object']}, {step['arm']})"
+        label = action if action == "drawer_open" else (
+            f"pickup({step['object']}, {step['arm']})" if action == "pickup"
+            else f"handoff({step['object']})"
+        )
         emit({"type": "step_start", "index": i, "action": label, "reason": step.get("reason", "")})
 
         success = False

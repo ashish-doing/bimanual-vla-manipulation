@@ -197,13 +197,19 @@ def release(model, data, arm, obj_name, settle_steps=250, verbose=True):
 
 
 def approach_and_grasp(model, data, configuration, arm, get_object_pos_fn, obj_name,
-                        approach_offset=np.array([0, 0, 0.08]), grasp_offset=np.array([0, 0, 0.02]),
+                        approach_offset=np.array([0, 0, 0.08]), grasp_offset=None,
                         max_retries=2, verbose=True):
-    """grasp_offset lifts the final target slightly above the object's exact
-    center -- discovered in-session that moving the gripper frame all the
-    way to a tall object's center (e.g. the cup) drives the gripper mesh
-    into the object's bulk, generating a violent contact-force launch on
-    settle. A thin object (plate) didn't show this; a taller one did."""
+    """grasp_offset lifts (or lowers) the final target relative to the
+    object's exact center. Discovered in-session, twice: (1) moving the
+    gripper frame all the way to a tall object's center drives the gripper
+    mesh into the object's bulk on approach; (2) for the CUP specifically,
+    the standard +0.02 offset (fine for flat objects like the plate) leaves
+    only ~1.5cm of clearance between the cup's rim and the forearm link
+    above the gripper -- confirmed by contact logging that right_lower_arm
+    scrapes/drags the cup throughout transport, eventually launching it.
+    Defaults to a small per-object-appropriate value when not specified."""
+    if grasp_offset is None:
+        grasp_offset = GRASP_OFFSETS.get(obj_name, np.array([0, 0, 0.02]))
     obj_pos = get_object_pos_fn()
     move_to(model, data, configuration, arm, obj_pos + approach_offset, verbose=verbose)
     for attempt in range(max_retries + 1):
@@ -216,6 +222,18 @@ def approach_and_grasp(model, data, configuration, arm, get_object_pos_fn, obj_n
         if verbose:
             print(f"  [retry {attempt+1}] {arm} missed by {dist:.4f}m, re-aiming...")
     return False, dist
+
+
+# Per-object grasp offsets -- tall objects (cup: half-height 0.035) need to
+# be gripped BELOW center to leave clearance between their rim and the
+# forearm link above the gripper. Flat objects (plate: half-height 0.006)
+# have plenty of clearance either way; spoon/fork are thin capsules, same.
+GRASP_OFFSETS = {
+    "cup": np.array([0, 0, -0.015]),
+    "plate": np.array([0, 0, 0.02]),
+    "spoon": np.array([0, 0, 0.02]),
+    "fork": np.array([0, 0, 0.02]),
+}
 
 
 def verify_drawer_open(model, data, min_open=0.08):

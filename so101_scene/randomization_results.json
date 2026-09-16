@@ -4,7 +4,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08874013964776122
+          "drawer_pos": 0.08859830601147267
         }
       },
       "plate_pickup": {
@@ -17,6 +17,19 @@
         "success": true,
         "state": {
           "left_holding_spoon": true
+        }
+      },
+      "fork_pickup": {
+        "success": false,
+        "state": {
+          "reach_failed": "fork",
+          "reach_dist": 0.30225788004548954
+        }
+      },
+      "cup_handoff": {
+        "success": true,
+        "state": {
+          "left_holding_cup": true
         }
       }
     },
@@ -24,7 +37,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08845524020502063
+          "drawer_pos": 0.08845524020496287
         }
       },
       "plate_pickup": {
@@ -37,6 +50,18 @@
         "success": true,
         "state": {
           "left_holding_spoon": true
+        }
+      },
+      "fork_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_fork": true
+        }
+      },
+      "cup_handoff": {
+        "success": true,
+        "state": {
+          "left_holding_cup": true
         }
       }
     },
@@ -44,7 +69,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08859766857293438
+          "drawer_pos": 0.08845524020496287
         }
       },
       "plate_pickup": {
@@ -57,6 +82,18 @@
         "success": true,
         "state": {
           "left_holding_spoon": true
+        }
+      },
+      "fork_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_fork": true
+        }
+      },
+      "cup_handoff": {
+        "success": true,
+        "state": {
+          "left_holding_cup": true
         }
       }
     },
@@ -64,7 +101,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08845524020502063
+          "drawer_pos": 0.08845524020496287
         }
       },
       "plate_pickup": {
@@ -78,13 +115,25 @@
         "state": {
           "left_holding_spoon": true
         }
+      },
+      "fork_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_fork": true
+        }
+      },
+      "cup_handoff": {
+        "success": true,
+        "state": {
+          "left_holding_cup": true
+        }
       }
     },
     "4": {
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08845524020502063
+          "drawer_pos": 0.08845524020496287
         }
       },
       "plate_pickup": {
@@ -97,7 +146,19 @@
         "success": false,
         "state": {
           "reach_failed": "spoon",
-          "reach_dist": 0.5340869031846623
+          "reach_dist": 0.5181760694587176
+        }
+      },
+      "fork_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_fork": true
+        }
+      },
+      "cup_handoff": {
+        "success": true,
+        "state": {
+          "left_holding_cup": true
         }
       }
     },
@@ -105,7 +166,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08845524020502063
+          "drawer_pos": 0.08845524020496287
         }
       },
       "plate_pickup": {
@@ -118,6 +179,19 @@
         "success": true,
         "state": {
           "left_holding_spoon": true
+        }
+      },
+      "fork_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_fork": true
+        }
+      },
+      "cup_handoff": {
+        "success": false,
+        "state": {
+          "reach_failed": "left_final_cup",
+          "reach_dist": 2.4033386511863473
         }
       }
     },
@@ -125,7 +199,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08853518330757286
+          "drawer_pos": 0.08845524020496287
         }
       },
       "plate_pickup": {
@@ -138,6 +212,19 @@
         "success": true,
         "state": {
           "left_holding_spoon": true
+        }
+      },
+      "fork_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_fork": true
+        }
+      },
+      "cup_handoff": {
+        "success": false,
+        "state": {
+          "reach_failed": "left_final_cup",
+          "reach_dist": 2.3538433370704914
         }
       }
     },
@@ -145,7 +232,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08870595605072396
+          "drawer_pos": 0.08866423964333967
         }
       },
       "plate_pickup": {
@@ -158,6 +245,18 @@
         "success": true,
         "state": {
           "left_holding_spoon": true
+        }
+      },
+      "fork_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_fork": true
+        }
+      },
+      "cup_handoff": {
+        "success": true,
+        "state": {
+          "left_holding_cup": true
         }
       }
     },
@@ -165,7 +264,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08845524020502063
+          "drawer_pos": 0.08845524020496287
         }
       },
       "plate_pickup": {
@@ -178,6 +277,19 @@
         "success": true,
         "state": {
           "left_holding_spoon": true
+        }
+      },
+      "fork_pickup": {
+        "success": false,
+        "state": {
+          "reach_failed": "fork",
+          "reach_dist": 0.6132510771314572
+        }
+      },
+      "cup_handoff": {
+        "success": true,
+        "state": {
+          "left_holding_cup": true
         }
       }
     },
@@ -185,7 +297,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08874254242231211
+          "drawer_pos": 0.08874517700005423
         }
       },
       "plate_pickup": {
@@ -199,13 +311,28 @@
         "state": {
           "left_holding_spoon": true
         }
+      },
+      "fork_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_fork": true
+        }
+      },
+      "cup_handoff": {
+        "success": false,
+        "state": {
+          "reach_failed": "left_final_cup",
+          "reach_dist": 1.5961949477014024
+        }
       }
     }
   },
   "summary": {
     "drawer_open": 10,
     "plate_pickup": 10,
-    "spoon_pickup": 9
+    "spoon_pickup": 9,
+    "fork_pickup": 8,
+    "cup_handoff": 7
   },
   "n_seeds": 10
 }

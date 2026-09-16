@@ -33,7 +33,7 @@ ARM_BASE_X = 0.24
 # project's table-clipping).
 DRAWER_POS = [-0.13, 0.16, 0.02]
 SPOON_POS = [-0.16, -0.14, 0.05]
-FORK_POS = [-0.16, -0.21, 0.05]
+FORK_POS = [-0.16, -0.19, 0.05]
 PLATE_POS = [0.08, -0.08, 0.02]
 CUP_POS = [0.15, 0.06, 0.02]
 HANDOFF_ZONE = [0.0, 0.0, 0.10]

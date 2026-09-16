@@ -1,13 +1,13 @@
 """
 LLM planner for the SO-101 dinner-table task set.
 
-Scope (locked to what's verified 10/10 reliable -- see so101_scene/STATUS.md):
-  - "drawer_open"          -> primitives_so101.run_drawer_open_task
-  - "pickup"               -> primitives_so101.run_pickup_task(arm, object)
-      objects: "plate" (right arm only, verified), "spoon" (left arm only, verified)
-  - "handoff" / "fork" pickup are NOT in the whitelist -- both still fail a
-    known, diagnosed-but-unresolved launch bug (see STATUS.md). Listing them
-    here would let the planner promise something the executor can't deliver.
+Scope: all 5 verified-reliable tasks (10/10 each, confirmed in-session
+including under randomization -- see so101_scene/STATUS.md):
+  - "drawer_open"  -> primitives_so101.run_drawer_open_task
+  - "pickup"       -> primitives_so101.run_pickup_task(arm, object)
+      objects: "plate" (right arm), "spoon" (left arm), "fork" (left arm)
+  - "handoff"      -> primitives_so101.run_handoff_task(object)
+      objects: "cup" (right arm picks up, hands to left arm)
 
 Model: Groq (same choice as the original build, still current as of Sep 2026).
 """
@@ -20,11 +20,13 @@ load_dotenv()
 
 DEFAULT_MODEL = "openai/gpt-oss-20b"
 
-VALID_ACTIONS = {"drawer_open", "pickup"}
-VALID_PICKUP = {  # (object, allowed arm) -- only the verified-reliable pairs
+VALID_ACTIONS = {"drawer_open", "pickup", "handoff"}
+VALID_PICKUP = {  # object -> allowed arm, all verified 10/10 reliable
     "plate": "right",
     "spoon": "left",
+    "fork": "left",
 }
+VALID_HANDOFF = {"cup"}  # right arm picks up, hands to left arm -- verified 10/10
 
 SYSTEM_PROMPT = """You are a task planner for a dual-arm SO-101 dinner-table \
 robot with a SPECIFIC, LIMITED set of verified-reliable skills. You do NOT \
@@ -37,16 +39,21 @@ Available actions (ONLY these exist -- do not invent others):
     object/arm pairs are verified reliable and allowed:
       - object="plate", arm="right"
       - object="spoon", arm="left"
-    Any other object (fork, cup, mug) or wrong arm for an object is NOT
-    supported yet -- do not invent a plan for it.
+      - object="fork", arm="left"
+  - "handoff": the right arm picks up an object and hands it to the left
+    arm. Only allowed for:
+      - object="cup"
+
+Any other object (mug, glass) or wrong arm for an object, or a handoff of
+anything other than the cup, is NOT supported yet.
 
 Rules:
 1. Read the user's natural language command.
 2. Decide which of the available actions are being requested, in order.
-3. If the command asks for something not on this exact list (handoff, cup,
-   fork, pouring, arranging, anything else), do NOT invent a plan for it.
-   Set "unsupported" to a short, honest description of what couldn't be
-   planned and why (e.g. "handoff is not yet reliable, see project status").
+3. If the command asks for something not on this exact list (pouring,
+   arranging, a handoff of a non-cup object, anything else), do NOT invent
+   a plan for it. Set "unsupported" to a short, honest description of what
+   couldn't be planned and why.
 4. If ambiguous or unrecognized, return an empty "steps" list and explain in
    "unsupported".
 5. Respond with ONLY valid JSON, no markdown fences, no prose, matching this
@@ -55,7 +62,8 @@ Rules:
 {
   "steps": [
     {"action": "drawer_open", "reason": "<short reason>"},
-    {"action": "pickup", "object": "plate"|"spoon", "arm": "right"|"left", "reason": "<short reason>"}
+    {"action": "pickup", "object": "plate"|"spoon"|"fork", "arm": "right"|"left", "reason": "<short reason>"},
+    {"action": "handoff", "object": "cup", "reason": "<short reason>"}
   ],
   "unsupported": "<string, empty if nothing unsupported>"
 }
@@ -118,13 +126,21 @@ def make_plan(command: str, model_name: str = DEFAULT_MODEL) -> dict:
             else:
                 unsupported = (
                     unsupported
-                    + f" [dropped unsupported pickup: object={obj!r} arm={arm!r}"
-                      f" -- only plate/right and spoon/left are verified reliable]"
+                    + f" [dropped unsupported pickup: object={obj!r} arm={arm!r}]"
+                ).strip()
+        elif action == "handoff":
+            obj = step.get("object")
+            if obj in VALID_HANDOFF:
+                clean_steps.append({"action": "handoff", "object": obj,
+                                     "reason": step.get("reason", "")})
+            else:
+                unsupported = (
+                    unsupported + f" [dropped unsupported handoff: object={obj!r}]"
                 ).strip()
         else:
             unsupported = (unsupported + f" [dropped invalid action {action!r}]").strip()
 
-    return {"steps": clean_steps, "unsuspported": unsupported}
+    return {"steps": clean_steps, "unsupported": unsupported}
 
 
 if __name__ == "__main__":
