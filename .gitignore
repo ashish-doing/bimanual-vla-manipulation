@@ -6,3 +6,4 @@ __pycache__/
 venv/
 *.mp4
 *.egg-info/
+so101_scene/MUJOCO_LOG.TXT
