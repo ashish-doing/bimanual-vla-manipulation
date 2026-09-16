@@ -33,11 +33,19 @@ def randomize_scene(model, data, rng):
     one randomized trial. Called before reset_to_neutral each seed."""
     for obj_name in ("plate", "spoon", "drawer"):
         body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, obj_name)
-        # Randomize mass by mutating the body's geom mass proportionally
         geom_ids = [g for g in range(model.ngeom) if model.geom_bodyid[g] == body_id]
+
+        # Scale mass AND inertia together by the SAME factor. Setting
+        # body_mass alone leaves body_inertia inconsistent with the new
+        # mass -- confirmed in-session to cause real "NaN in QACC" solver
+        # instability, especially for tumbling/rotating objects. Inertia
+        # scales linearly with mass for a fixed-shape rigid body, so
+        # multiplying both by the same factor keeps the physics consistent.
+        mass_scale = 1 + rng.uniform(-MASS_JITTER, MASS_JITTER)
+        model.body_mass[body_id] *= mass_scale
+        model.body_inertia[body_id] *= mass_scale
+
         for g in geom_ids:
-            base_mass = model.body_mass[body_id]
-            model.body_mass[body_id] = base_mass * (1 + rng.uniform(-MASS_JITTER, MASS_JITTER))
             model.geom_friction[g] = model.geom_friction[g] * (
                 1 + rng.uniform(-FRICTION_JITTER, FRICTION_JITTER)
             )

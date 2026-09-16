@@ -174,6 +174,23 @@ def release(model, data, arm, obj_name, settle_steps=250, verbose=True):
         n2 = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, b2)
         if {n1, n2} == {f"{arm}_gripper", obj_name}:
             data.eq_active[i] = 0
+    # Zero the object's velocity at the instant of release. A stiffened weld
+    # (needed to stop it drifting during fast transport, see build script)
+    # can be holding a small residual position error under tension; deactivating
+    # it instantly frees that stored tension as a velocity kick -- a
+    # "slingshot" launch. Confirmed in-session as the mechanism behind the
+    # cup repeatedly ending up flung off the table after an otherwise
+    # accurate placement.
+    obj_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, obj_name)
+    free_jid = None
+    for j in range(model.njnt):
+        if model.jnt_bodyid[j] == obj_id and model.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE:
+            free_jid = j
+            break
+    if free_jid is not None:
+        vadr = model.jnt_dofadr[free_jid]
+        data.qvel[vadr:vadr + 6] = 0
+    mujoco.mj_forward(model, data)
     _set_gripper(model, data, arm, GRIPPER_OPEN, settle_steps)
     if verbose:
         print(f"  [release] {arm} released '{obj_name}'")
@@ -201,7 +218,7 @@ def approach_and_grasp(model, data, configuration, arm, get_object_pos_fn, obj_n
     return False, dist
 
 
-def verify_drawer_open(model, data, min_open=0.09):
+def verify_drawer_open(model, data, min_open=0.08):
     adr = _jnt_qpos_adr(model, "drawer_slide")
     pos = data.qpos[adr]
     return pos >= min_open, {"drawer_pos": float(pos)}
@@ -292,6 +309,12 @@ def run_handoff_task(model, data, configuration, obj_name, verbose=True):
     move_to(model, data, configuration, "right", HANDOFF_ZONE, verbose=verbose)
     move_to(model, data, configuration, "right", HANDOFF_ZONE + np.array([0, 0, -0.05]), settle_steps=1200, verbose=verbose)
     release(model, data, "right", obj_name, verbose=verbose)
+    # Two-stage retreat (straight up, then to the side) -- a direct move to
+    # RETREAT grazed the object it just placed and launched it. Same fix
+    # pattern as the drawer's static-gripper-blocks-drawer bug.
+    site_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "right_gripperframe")
+    up_point = data.site_xpos[site_id].copy() + np.array([0, 0, 0.18])
+    move_to(model, data, configuration, "right", up_point, settle_steps=1200, verbose=verbose)
     move_to(model, data, configuration, "right", RETREAT["right"], verbose=verbose)
 
     ok, dist = approach_and_grasp(

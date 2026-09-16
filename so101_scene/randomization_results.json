@@ -4,7 +4,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08874013964776695
+          "drawer_pos": 0.08874013964776122
         }
       },
       "plate_pickup": {
@@ -24,7 +24,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08845524020496287
+          "drawer_pos": 0.08845524020502063
         }
       },
       "plate_pickup": {
@@ -44,7 +44,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08859766857293341
+          "drawer_pos": 0.08859766857293438
         }
       },
       "plate_pickup": {
@@ -64,7 +64,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08845524020496287
+          "drawer_pos": 0.08845524020502063
         }
       },
       "plate_pickup": {
@@ -84,7 +84,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08845524020496287
+          "drawer_pos": 0.08845524020502063
         }
       },
       "plate_pickup": {
@@ -94,9 +94,10 @@
         }
       },
       "spoon_pickup": {
-        "success": true,
+        "success": false,
         "state": {
-          "left_holding_spoon": true
+          "reach_failed": "spoon",
+          "reach_dist": 0.5340869031846623
         }
       }
     },
@@ -104,7 +105,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08845524020496287
+          "drawer_pos": 0.08845524020502063
         }
       },
       "plate_pickup": {
@@ -124,7 +125,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08853518330757429
+          "drawer_pos": 0.08853518330757286
         }
       },
       "plate_pickup": {
@@ -144,7 +145,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08870595605073765
+          "drawer_pos": 0.08870595605072396
         }
       },
       "plate_pickup": {
@@ -164,7 +165,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08845524020496287
+          "drawer_pos": 0.08845524020502063
         }
       },
       "plate_pickup": {
@@ -184,7 +185,7 @@
       "drawer_open": {
         "success": true,
         "state": {
-          "drawer_pos": 0.08874254242231808
+          "drawer_pos": 0.08874254242231211
         }
       },
       "plate_pickup": {
@@ -204,7 +205,7 @@
   "summary": {
     "drawer_open": 10,
     "plate_pickup": 10,
-    "spoon_pickup": 10
+    "spoon_pickup": 9
   },
   "n_seeds": 10
 }

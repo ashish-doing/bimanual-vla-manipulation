@@ -32,8 +32,8 @@ ARM_BASE_X = 0.24
 # fork<->drawer contact found in-session, same bug category as the ALOHA
 # project's table-clipping).
 DRAWER_POS = [-0.13, 0.16, 0.02]
-SPOON_POS = [-0.24, 0.02, 0.05]
-FORK_POS = [-0.24, -0.06, 0.05]
+SPOON_POS = [-0.16, -0.14, 0.05]
+FORK_POS = [-0.16, -0.21, 0.05]
 PLATE_POS = [0.08, -0.08, 0.02]
 CUP_POS = [0.15, 0.06, 0.02]
 HANDOFF_ZONE = [0.0, 0.0, 0.10]
@@ -158,11 +158,17 @@ def build_spec() -> mujoco.MjSpec:
     # ---- Weld constraints for kinematic grasping (one per object per arm) ----
     for obj in ("spoon", "fork", "plate", "cup"):
         for side in ("left", "right"):
+            # solref stiffened from [0.01,1] -- the original value let a
+            # grasped object drift away from the gripper during fast
+            # position-actuator-driven transport moves (confirmed
+            # in-session: the gripper itself converged to within 2cm of its
+            # IK target, but the "rigidly welded" cup ended up 17cm away --
+            # the weld was too soft to keep up, not a targeting bug).
             main.add_equality(
                 type=mujoco.mjtEq.mjEQ_WELD,
                 name1=f"{side}_gripper", name2=obj,
                 objtype=mujoco.mjtObj.mjOBJ_BODY,
-                active=False, solref=[0.01, 1],
+                active=False, solref=[0.004, 1],
             )
 
     return main

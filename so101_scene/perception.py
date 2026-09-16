@@ -6,7 +6,18 @@ the actual "reasons over camera observations" piece, scoped honestly small
 (see README.md "Framing").
 """
 import os
-os.environ.setdefault("MUJOCO_GL", "osmesa")
+
+# Only force the headless OSMesa backend when there's no real display
+# (Docker, CI, this project's own sandbox testing) -- forcing it on a
+# desktop with a real X server and an NVIDIA driver causes a hard OpenGL
+# crash (confirmed: 'NoneType' object has no attribute 'glGetError'),
+# because OSMesa's software GL conflicts with the system's hardware GL.
+# On a real desktop, MuJoCo's natural default backend (GLFW) already works
+# fine without any of this -- confirmed by generate_vision_data.py, whose
+# osmesa line was an accidental no-op (set after mujoco was already
+# imported) and which still rendered correctly.
+if not os.environ.get("DISPLAY") and "MUJOCO_GL" not in os.environ:
+    os.environ["MUJOCO_GL"] = "osmesa"
 
 import numpy as np
 import mujoco

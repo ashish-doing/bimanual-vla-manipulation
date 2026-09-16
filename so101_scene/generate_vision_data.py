@@ -12,10 +12,14 @@ Usage: MUJOCO_GL=osmesa python generate_vision_data.py
 Produces: vision_data.npz (images + labels)
 """
 import os
+
+# See perception.py for why this is conditional, not a hard default --
+# forcing osmesa on a desktop with a real display + NVIDIA driver crashes.
+if not os.environ.get("DISPLAY") and "MUJOCO_GL" not in os.environ:
+    os.environ["MUJOCO_GL"] = "osmesa"
+
 import numpy as np
 import mujoco
-
-os.environ.setdefault("MUJOCO_GL", "osmesa")
 
 import primitives_so101 as prim
 
