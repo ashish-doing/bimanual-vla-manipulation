@@ -211,8 +211,8 @@
     <div class="examples">
       <button data-cmd="open the drawer">Open the drawer</button>
       <button data-cmd="pick up the plate with the right arm">Pick up the plate</button>
-      <button data-cmd="hand the cup from the right arm to the left arm">Hand off the cup</button>
-      <button data-cmd="pour water into the mug">Try an unsupported task</button>
+      <button data-cmd="pick up the spoon with the left arm">Pick up the spoon</button>
+      <button data-cmd="hand the cup to the left arm">Try an unsupported task</button>
     </div>
 
     <div class="conn">
@@ -288,13 +288,9 @@ what's actually running right now.</div>
 
 <script>
 /*
- * STRUCTURAL SCAFFOLD ONLY -- this file is not wired to a live WebSocket
- * backend yet, unlike the working dashboard in dashboard/server.py which
- * talks to the ALOHA-era pipeline. The event handlers below show the
- * intended shape of the wiring (matching the same event schema as the
- * existing dashboard: planning/plan/step_start/attempt_result/step_result/
- * plan_result/error) so connecting a real backend later is a small,
- * mechanical change, not a redesign.
+ * Wired to dashboard_server.py (so101_scene/) via WebSocket. Same event
+ * schema as the original ALOHA-era dashboard: planning/plan/step_start/
+ * attempt_result/step_result/plan_result/unsupported/error.
  */
 const logEl = document.getElementById('log');
 const stepsEl = document.getElementById('steps');
@@ -303,6 +299,31 @@ const connDot = document.getElementById('connDot');
 const connText = document.getElementById('connText');
 const runBtn = document.getElementById('runBtn');
 const commandEl = document.getElementById('command');
+const leftState = document.getElementById('leftState');
+const rightState = document.getElementById('rightState');
+const leftHolding = document.getElementById('leftHolding');
+const rightHolding = document.getElementById('rightHolding');
+
+let ws;
+let stepState = [];
+
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws/run`);
+  ws.onopen = () => {
+    connDot.className = 'dot up';
+    connText.textContent = 'connected';
+    runBtn.disabled = false;
+  };
+  ws.onclose = () => {
+    connDot.className = 'dot down';
+    connText.textContent = 'disconnected — retrying…';
+    runBtn.disabled = true;
+    setTimeout(connect, 1500);
+  };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (ev) => handleEvent(JSON.parse(ev.data));
+}
 
 function logLine(text, cls) {
   const div = document.createElement('div');
@@ -313,20 +334,94 @@ function logLine(text, cls) {
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-// Placeholder: no backend connected. Once the SO-101 executor + dashboard
-// server exist, replace this block with the same WebSocket pattern used in
-// dashboard/server.py (connect, send {command}, handle incoming events).
-runBtn.addEventListener('click', () => {
+function renderSteps() {
+  stepsEl.innerHTML = '';
+  stepState.forEach((s) => {
+    const row = document.createElement('div');
+    row.className = 'step';
+    row.innerHTML = `<span class="badge ${s.badgeClass}">${s.badgeText}</span>
+      <span class="action">${s.action}</span><span class="meta">${s.meta || ''}</span>`;
+    stepsEl.appendChild(row);
+  });
+}
+
+function resetArmStatus() {
+  leftState.textContent = 'Idle'; rightState.textContent = 'Idle';
+  leftHolding.textContent = 'holding: nothing'; rightHolding.textContent = 'holding: nothing';
+}
+
+function handleEvent(e) {
+  switch (e.type) {
+    case 'planning':
+      overallEl.className = 'overall';
+      stepState = []; renderSteps(); resetArmStatus();
+      logLine(`Planning for: "${e.command}"`, 'tag-muted');
+      break;
+    case 'plan':
+      stepState = e.plan.steps.map(s => ({
+        action: s.action === 'drawer_open' ? 'drawer_open' : `pickup(${s.object}, ${s.arm})`,
+        badgeClass: 'pending', badgeText: 'pending', meta: s.reason || ''
+      }));
+      renderSteps();
+      logLine(`Plan: ${stepState.map(s => s.action).join(' → ') || '(no valid steps)'}`, 'tag-muted');
+      if (e.plan.unsupported) logLine(`⚠ ${e.plan.unsupported}`, 'tag-warn');
+      break;
+    case 'unsupported':
+      logLine(`⚠ ${e.message}`, 'tag-warn');
+      break;
+    case 'step_start':
+      stepState[e.index].badgeClass = 'running'; stepState[e.index].badgeText = 'running';
+      renderSteps();
+      if (e.action.includes('right')) { rightState.textContent = 'Working…'; }
+      if (e.action.includes('drawer_open') || e.action.includes('left')) { leftState.textContent = 'Working…'; }
+      logLine(`Step ${e.index + 1} (${e.action}): starting`, 'tag-muted');
+      break;
+    case 'attempt_result':
+      logLine(`Step ${e.index + 1} (${e.action}) attempt ${e.attempt}: ${e.tag} — ${JSON.stringify(e.state)}`,
+              e.tag === 'CONFIRM' ? 'tag-CONFIRM' : 'tag-DISPUTE');
+      if (e.tag === 'CONFIRM') {
+        const heldKey = Object.keys(e.state).find(k => k.includes('holding') && e.state[k]);
+        if (heldKey) {
+          const obj = heldKey.split('_holding_')[1];
+          if (heldKey.startsWith('left')) { leftState.textContent = 'Holding'; leftHolding.textContent = `holding: ${obj}`; }
+          if (heldKey.startsWith('right')) { rightState.textContent = 'Holding'; rightHolding.textContent = `holding: ${obj}`; }
+        }
+      }
+      break;
+    case 'step_result':
+      stepState[e.index].badgeClass = e.success ? 'confirm' : 'dispute';
+      stepState[e.index].badgeText = e.success ? 'CONFIRM' : 'DISPUTE';
+      stepState[e.index].meta = `${e.attempts_used} attempt(s)`;
+      renderSteps();
+      break;
+    case 'plan_result':
+      overallEl.className = 'overall ' + (e.overall === 'SUCCESS' ? 'success' : 'failed');
+      overallEl.textContent = e.overall === 'SUCCESS' ? '✓ PLAN SUCCEEDED' : `✗ PLAN FAILED — ${e.reason}`;
+      logLine(`Result: ${e.overall}${e.reason ? ' — ' + e.reason : ''}`,
+              e.overall === 'SUCCESS' ? 'tag-CONFIRM' : 'tag-DISPUTE');
+      runBtn.disabled = false;
+      leftState.textContent = 'Idle'; rightState.textContent = 'Idle';
+      break;
+    case 'error':
+      logLine(`ERROR: ${e.message}`, 'tag-DISPUTE');
+      runBtn.disabled = false;
+      break;
+  }
+}
+
+function run() {
   const command = commandEl.value.trim();
-  if (!command) return;
-  logLine(`Command submitted: "${command}" -- no backend connected yet, nothing executed.`, 'tag-warn');
+  if (!command || ws.readyState !== WebSocket.OPEN) return;
+  runBtn.disabled = true;
+  ws.send(JSON.stringify({ command }));
+}
+
+runBtn.addEventListener('click', run);
+document.querySelectorAll('.examples button').forEach(btn => {
+  btn.addEventListener('click', () => { commandEl.value = btn.dataset.cmd; run(); });
 });
 
-document.querySelectorAll('.examples button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    commandEl.value = btn.dataset.cmd;
-  });
-});
+connect();
 </script>
 </body>
 </html>

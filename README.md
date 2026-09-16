@@ -62,12 +62,12 @@ impressive-sounding.
 
 | # | Criterion | Points | Current state |
 |---|---|---|---|
-| 1 | End-to-End Task Completion & Bimanual Manipulation | 30 | Dual-SO-101 scene built, physically verified. Individual tasks (drawer-open, plate pickup, cup handoff, spoon/fork pickup) have each hit 100% reliability in isolation; **not yet all simultaneously reliable in one run** — see STATUS.md |
-| 2 | VLA / Multi-Modal Reasoning | 20 | Camera (`table_cam`) exists in-scene and renders. Nothing reads it yet — not started |
-| 3 | Robustness & Generalization (10 seeds) | 15 | Not started |
-| 4 | OpenVINO & Intel Core Ultra Optimization | 20 | Not started. No Core Ultra hardware owned locally (confirmed: 13th Gen i7-13650HX, no NPU) — plan is Intel's free AI PC Cloud for real hardware validation, CPU-plugin fallback with honest disclosure if that access doesn't come through in time |
-| 5 | Technical Quality & Reproducibility | 10 | Clean, tested scene-build pipeline; every bug found this session is documented with its fix, not hidden |
-| 6 | Innovation & Technical Demonstration | 5 | CONFIRM/DISPUTE verify/replan lineage carried over from prior projects' mission-verification and observability patterns, applied to a new domain |
+| 1 | End-to-End Task Completion & Bimanual Manipulation | 30 | Dual-SO-101 scene built, physically verified. **3 of 5 tasks are 10/10 reliable** (drawer-open, plate pickup, spoon pickup — both arms exercised) and Groq planner + verify/replan executor drive them end-to-end. Fork pickup and cup handoff (the bimanual hand-off itself) still fail a diagnosed-but-unresolved launch bug — see STATUS.md |
+| 2 | VLA / Multi-Modal Reasoning | 20 | Real, working: `table_cam` renders, a small classifier (trained on synthetic sim renders, not hand-labeled) reads it and correctly detects drawer open/closed from the actual image — verified against ground truth (before/after a real drawer-open: p=0.013 → p=0.977, matches physics state). Scope is intentionally small (one binary fact from vision, not a general scene parser) — see "Framing" above |
+| 3 | Robustness & Generalization (10 seeds) | 15 | **10/10 across all 3 reliable tasks**, under randomized object placement (±2cm), mass (±30%), and friction (±30%) per seed — see `so101_scene/randomization_harness.py` and its output `randomization_results.json` |
+| 4 | OpenVINO & Intel Core Ultra Optimization | 20 | Real pipeline built and run: sklearn model → hand-built standard-ops ONNX graph (skl2onnx's default output wasn't OpenVINO-compatible) → OpenVINO IR → real inference, benchmarked at ~0.03ms latency / ~29k inferences/sec **on the dev machine's CPU** (13th Gen i7-13650HX — confirmed no Core Ultra, no NPU). Intel AI PC Cloud access for real Core Ultra numbers is the remaining piece — see `so101_scene/benchmark_openvino.py` |
+| 5 | Technical Quality & Reproducibility | 10 | Clean, tested scene-build pipeline; every bug found this session is documented with its fix, not hidden; real reproducible scripts for data generation, training, conversion, benchmarking, and randomized evaluation |
+| 6 | Innovation & Technical Demonstration | 5 | CONFIRM/DISPUTE verify/replan lineage carried over from prior projects' mission-verification and observability patterns, applied to a new domain; vision-grounded verification (checking the physics state AND a real trained classifier's read of the camera image) is a small but genuine multi-modal check, not just a label |
 
 This table will be updated as work continues — treat any version of this
 README as a snapshot, not a permanent scorecard.
@@ -79,17 +79,20 @@ reference, and data flow. Summary:
 
 ```
 NL command + camera frame (table_cam)
-   -> Understand (Groq LLM planner; vision grounding in progress)
+   -> Understand (Groq LLM planner, whitelisted to 3 verified-reliable tasks)
    -> Plan (whitelisted JSON action list)
    -> Act (mink IK-driven primitives on dual SO-101, weld-based grasping)
-   -> Verify (real MuJoCo state check — CONFIRM/DISPUTE)
+   -> Verify (real MuJoCo state check — CONFIRM/DISPUTE; drawer-state also
+      cross-checked by a real OpenVINO-run vision classifier reading the
+      camera frame, not just the ground-truth qpos)
    -> Replan (bounded retries)
--> Robustness harness (planned): 10 randomized seeds, log success rate
--> Optimize (planned): small vision model trained on synthetic sim renders,
-   converted to OpenVINO IR, benchmarked on CPU and (if access obtained)
-   real Intel Core Ultra hardware
--> Dashboard: FastAPI + WebSocket live event log (Intel-inspired redesign
-   in `dashboard/static/index.html`; not yet wired to the new SO-101 pipeline)
+-> Robustness harness: 10 randomized seeds (placement/mass/friction),
+   10/10 across all 3 reliable tasks -- so101_scene/randomization_harness.py
+-> Optimize: small classifier trained on synthetic sim renders, converted to
+   OpenVINO IR, benchmarked (~0.03ms / ~29k inf/sec on the dev CPU; Core
+   Ultra numbers pending Intel AI PC Cloud access)
+-> Dashboard: FastAPI + WebSocket live event log, Intel-themed frontend,
+   wired to this pipeline (so101_scene/dashboard_server.py)
 ```
 
 ## Repo layout
@@ -101,14 +104,24 @@ bimanual-hackathon/
 │   ├── build_dinner_scene.py      builds the dual-SO101 dinner-table scene
 │   ├── dinner_scene.xml           compiled scene (regenerate, don't hand-edit)
 │   ├── primitives_so101.py        task primitives (move_to/grasp/verify/etc.)
+│   ├── planner_so101.py           Groq planner, whitelisted to the 3 reliable tasks
+│   ├── executor_so101.py          verify/replan loop for those tasks
+│   ├── generate_vision_data.py    synthetic training data from sim ground truth
+│   ├── train_vision_model.py      trains classifier, converts to OpenVINO IR
+│   ├── perception.py              runs the OpenVINO model on a live camera frame
+│   ├── benchmark_openvino.py      Intel inference benchmark (deliverable #3)
+│   ├── randomization_harness.py   10-seed robustness eval (deliverable #2)
+│   ├── dashboard_server.py        FastAPI/WebSocket server for this pipeline
+│   ├── vision_model.onnx, vision_model_ir/   trained + converted model artifacts
 │   ├── so101_new_calib.xml + assets/   vendored SO-101 model (Apache-2.0)
 │   └── SO-ARM100_LICENSE
 ├── primitives.py, build_scene.py  <- earlier ALOHA-rig build (superseded scope,
 │                                      kept for reference, not the submission target)
-├── planner.py, executor.py, main.py   <- Groq planner + verify/replan loop
-│                                          (currently wired to the ALOHA build;
-│                                          porting to so101_scene/ is next)
-├── dashboard/                     <- FastAPI + WebSocket live dashboard
+├── planner.py, executor.py, main.py   <- ALOHA-era Groq planner + verify/replan loop
+├── dashboard/                     <- ALOHA-era FastAPI + WebSocket dashboard,
+│                                      plus static/index_intel_redesign.html
+│                                      (the redesigned frontend, served by
+│                                      so101_scene/dashboard_server.py)
 ├── Dockerfile, render.yaml        <- deployment (headless MuJoCo + OpenVINO)
 ├── ARCHITECTURE.md
 ├── LICENSE
@@ -121,15 +134,30 @@ bimanual-hackathon/
 git clone https://github.com/ashish-doing/bimanual-vla-manipulation
 cd bimanual-vla-manipulation
 conda activate bimanual   # or your equivalent env
-pip install mujoco mink dm_control groq python-dotenv fastapi uvicorn openvino scikit-learn skl2onnx onnx
+pip install -r requirements.txt
 
 cd so101_scene
 python build_dinner_scene.py
 # prints: nq=41 nbody=20 nu=13 neq=8  -- confirms the scene loaded correctly
+
+# Vision + OpenVINO pipeline (only needs running once -- artifacts are committed):
+python generate_vision_data.py   # renders 400 synthetic labeled frames
+python train_vision_model.py     # trains + converts to OpenVINO IR
+python benchmark_openvino.py     # real latency/throughput numbers on THIS machine
+
+# Robustness evaluation (10 seeds):
+python randomization_harness.py
+
+# Full pipeline test (needs GROQ_API_KEY in .env):
+python executor_so101.py "open the drawer, then pick up the plate with the right arm"
+
+# Dashboard:
+uvicorn dashboard_server:app --host 0.0.0.0 --port 8001
+# open http://localhost:8001
 ```
 
 Then see [`so101_scene/STATUS.md`](./so101_scene/STATUS.md) for the exact
-next diagnostic to run before assuming any task primitive is reliable.
+next diagnostic to run on fork/cup before assuming they're reliable.
 
 ## Known limitations — disclosed honestly, not buried
 
@@ -138,17 +166,22 @@ next diagnostic to run before assuming any task primitive is reliable.
   deliberate scope decision given available time and compute, not an
   oversight.
 - **No Intel Core Ultra hardware owned.** Local machine is a 13th Gen Intel
-  Core i7-13650HX (Raptor Lake, no NPU). Plan is free remote access via
-  Intel's AI PC Cloud; if that access doesn't arrive in time, OpenVINO work
-  will be benchmarked CPU-only with that limitation stated plainly in the
-  submission, not hidden or implied otherwise.
-- **Task primitives are not yet simultaneously reliable.** See STATUS.md —
-  each of 5 tasks has individually hit 100%, but a recent fix for two of
-  them (spoon/fork) regressed two others (drawer/cup). This is being worked,
-  not swept under the rug.
-- **Camera perception and OpenVINO are not started.** Currently 0/40 points
-  on the two rubric criteria that cover this. Highest-priority remaining
-  work for exactly that reason.
+  Core i7-13650HX (Raptor Lake, no NPU). OpenVINO benchmark numbers so far
+  are real but CPU-only, on non-Core-Ultra hardware. Plan is free remote
+  access via Intel's AI PC Cloud; if that access doesn't arrive in time,
+  this limitation stays stated plainly in the submission, not hidden.
+- **2 of 5 task primitives (fork pickup, cup handoff) are not yet
+  reliable.** Both fail a diagnosed launch bug during transport/retreat —
+  see STATUS.md. The demo and evaluation scope is honestly narrowed to the
+  3 tasks that are 10/10 reliable (drawer-open, plate pickup, spoon
+  pickup) rather than including a flaky bimanual hand-off.
+- **The vision component is intentionally small.** One binary classifier
+  (drawer open/closed) trained on synthetic renders, not a general scene
+  parser. Scoped to what's genuinely achievable and genuinely run, not
+  claimed at a scale that wasn't actually built.
+- **`planner.py`/`executor.py` (repo root) are the superseded ALOHA-era
+  versions** — the current pipeline is `so101_scene/planner_so101.py` and
+  `so101_scene/executor_so101.py`.
 
 ## Lineage
 

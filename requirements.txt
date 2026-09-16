@@ -12,4 +12,10 @@ fastapi
 uvicorn[standard]
 websockets
 
+# Vision + OpenVINO (so101_scene/ pipeline)
+openvino
+scikit-learn
+onnx
+onnxruntime
+
 numpy

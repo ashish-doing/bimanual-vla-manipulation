@@ -1,0 +1,210 @@
+{
+  "per_seed": {
+    "0": {
+      "drawer_open": {
+        "success": true,
+        "state": {
+          "drawer_pos": 0.08874013964776695
+        }
+      },
+      "plate_pickup": {
+        "success": true,
+        "state": {
+          "right_holding_plate": true
+        }
+      },
+      "spoon_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_spoon": true
+        }
+      }
+    },
+    "1": {
+      "drawer_open": {
+        "success": true,
+        "state": {
+          "drawer_pos": 0.08845524020496287
+        }
+      },
+      "plate_pickup": {
+        "success": true,
+        "state": {
+          "right_holding_plate": true
+        }
+      },
+      "spoon_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_spoon": true
+        }
+      }
+    },
+    "2": {
+      "drawer_open": {
+        "success": true,
+        "state": {
+          "drawer_pos": 0.08859766857293341
+        }
+      },
+      "plate_pickup": {
+        "success": true,
+        "state": {
+          "right_holding_plate": true
+        }
+      },
+      "spoon_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_spoon": true
+        }
+      }
+    },
+    "3": {
+      "drawer_open": {
+        "success": true,
+        "state": {
+          "drawer_pos": 0.08845524020496287
+        }
+      },
+      "plate_pickup": {
+        "success": true,
+        "state": {
+          "right_holding_plate": true
+        }
+      },
+      "spoon_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_spoon": true
+        }
+      }
+    },
+    "4": {
+      "drawer_open": {
+        "success": true,
+        "state": {
+          "drawer_pos": 0.08845524020496287
+        }
+      },
+      "plate_pickup": {
+        "success": true,
+        "state": {
+          "right_holding_plate": true
+        }
+      },
+      "spoon_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_spoon": true
+        }
+      }
+    },
+    "5": {
+      "drawer_open": {
+        "success": true,
+        "state": {
+          "drawer_pos": 0.08845524020496287
+        }
+      },
+      "plate_pickup": {
+        "success": true,
+        "state": {
+          "right_holding_plate": true
+        }
+      },
+      "spoon_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_spoon": true
+        }
+      }
+    },
+    "6": {
+      "drawer_open": {
+        "success": true,
+        "state": {
+          "drawer_pos": 0.08853518330757429
+        }
+      },
+      "plate_pickup": {
+        "success": true,
+        "state": {
+          "right_holding_plate": true
+        }
+      },
+      "spoon_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_spoon": true
+        }
+      }
+    },
+    "7": {
+      "drawer_open": {
+        "success": true,
+        "state": {
+          "drawer_pos": 0.08870595605073765
+        }
+      },
+      "plate_pickup": {
+        "success": true,
+        "state": {
+          "right_holding_plate": true
+        }
+      },
+      "spoon_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_spoon": true
+        }
+      }
+    },
+    "8": {
+      "drawer_open": {
+        "success": true,
+        "state": {
+          "drawer_pos": 0.08845524020496287
+        }
+      },
+      "plate_pickup": {
+        "success": true,
+        "state": {
+          "right_holding_plate": true
+        }
+      },
+      "spoon_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_spoon": true
+        }
+      }
+    },
+    "9": {
+      "drawer_open": {
+        "success": true,
+        "state": {
+          "drawer_pos": 0.08874254242231808
+        }
+      },
+      "plate_pickup": {
+        "success": true,
+        "state": {
+          "right_holding_plate": true
+        }
+      },
+      "spoon_pickup": {
+        "success": true,
+        "state": {
+          "left_holding_spoon": true
+        }
+      }
+    }
+  },
+  "summary": {
+    "drawer_open": 10,
+    "plate_pickup": 10,
+    "spoon_pickup": 10
+  },
+  "n_seeds": 10
+}
