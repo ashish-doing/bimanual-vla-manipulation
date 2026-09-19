@@ -8,24 +8,25 @@ import mujoco
 import mink
 
 import primitives_so101 as prim
+from arm_backend import SimBackend
 
 MAX_RETRIES = 3
 
 SCENE_PATH = "dinner_scene.xml"
 
 
-def _run_step(model, data, configuration, step):
+def _run_step(backend, step):
     action = step["action"]
     if action == "drawer_open":
-        return prim.run_drawer_open_task(model, data, configuration, verbose=False)
+        return prim.run_drawer_open_task(backend, verbose=False)
     elif action == "pickup":
-        return prim.run_pickup_task(model, data, configuration, step["arm"], step["object"], verbose=False)
+        return prim.run_pickup_task(backend, step["arm"], step["object"], verbose=False)
     elif action == "handoff":
-        return prim.run_handoff_task(model, data, configuration, step["object"], verbose=False)
+        return prim.run_handoff_task(backend, step["object"], verbose=False)
     raise ValueError(f"unsupported action reached executor: {action}")
 
 
-def run_plan(model, data, configuration, plan, on_event=None):
+def run_plan(backend, plan, on_event=None):
     def emit(event):
         if on_event:
             on_event(event)
@@ -51,9 +52,9 @@ def run_plan(model, data, configuration, plan, on_event=None):
         success = False
         attempts = []
         for attempt in range(1, MAX_RETRIES + 1):
-            prim.reset_to_neutral(model, data)  # includes the object pre-settle
+            backend.reset_to_neutral()
             t0 = time.time()
-            ok, state = _run_step(model, data, configuration, step)
+            ok, state = _run_step(backend, step)
             elapsed = time.time() - t0
             tag = "CONFIRM" if ok else "DISPUTE"
             attempts.append({"attempt": attempt, "tag": tag, "state": state, "elapsed_s": round(elapsed, 2)})
@@ -82,9 +83,10 @@ def run_plan(model, data, configuration, plan, on_event=None):
 def new_sim(scene_path: str = SCENE_PATH):
     model = mujoco.MjModel.from_xml_path(scene_path)
     data = mujoco.MjData(model)
-    prim.reset_to_neutral(model, data)
     configuration = mink.Configuration(model)
-    return model, data, configuration
+    backend = SimBackend(model, data, configuration)
+    backend.reset_to_neutral()
+    return backend
 
 
 if __name__ == "__main__":
@@ -96,6 +98,6 @@ if __name__ == "__main__":
     plan = make_plan(cmd)
     print("Plan:", plan, "\n")
 
-    model, data, configuration = new_sim()
-    result = run_plan(model, data, configuration, plan, on_event=lambda e: print(" event:", e))
+    backend = new_sim()
+    result = run_plan(backend, plan, on_event=lambda e: print(" event:", e))
     print("\nFinal result:", result["overall"], "-", result.get("reason", ""))

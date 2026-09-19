@@ -18,6 +18,7 @@ import mujoco
 import mink
 
 import primitives_so101 as prim
+from arm_backend import SimBackend
 
 N_SEEDS = 10
 SCENE_PATH = "dinner_scene.xml"
@@ -83,16 +84,17 @@ def run_one_seed(seed, base_scene_path=SCENE_PATH):
 
     results = {}
     for task_name, fn in [
-        ("drawer_open", lambda m, d, c: prim.run_drawer_open_task(m, d, c, verbose=False)),
-        ("plate_pickup", lambda m, d, c: prim.run_pickup_task(m, d, c, "right", "plate", verbose=False)),
-        ("spoon_pickup", lambda m, d, c: prim.run_pickup_task(m, d, c, "left", "spoon", verbose=False)),
-        ("fork_pickup", lambda m, d, c: prim.run_pickup_task(m, d, c, "left", "fork", verbose=False)),
-        ("cup_handoff", lambda m, d, c: prim.run_handoff_task(m, d, c, "cup", verbose=False)),
+        ("drawer_open", lambda b: prim.run_drawer_open_task(b, verbose=False)),
+        ("plate_pickup", lambda b: prim.run_pickup_task(b, "right", "plate", verbose=False)),
+        ("spoon_pickup", lambda b: prim.run_pickup_task(b, "left", "spoon", verbose=False)),
+        ("fork_pickup", lambda b: prim.run_pickup_task(b, "left", "fork", verbose=False)),
+        ("cup_handoff", lambda b: prim.run_handoff_task(b, "cup", verbose=False)),
     ]:
         data = mujoco.MjData(model)
-        prim.reset_to_neutral(model, data)
         configuration = mink.Configuration(model)
-        ok, state = fn(model, data, configuration)
+        backend = SimBackend(model, data, configuration)
+        backend.reset_to_neutral()
+        ok, state = fn(backend)
         results[task_name] = {"success": bool(ok), "state": state}
     return results
 
