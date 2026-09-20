@@ -1,5 +1,5 @@
 <mujoco model="MuJoCo Model">
-  <compiler angle="radian" meshdir="/home/claude/bimanual-hackathon/so101_scene/assets/"/>
+  <compiler angle="radian" meshdir="/home/ashish-doing/projects/bimanual-hackathon/so101_scene/assets/"/>
 
   <default>
     <default class="left_main">

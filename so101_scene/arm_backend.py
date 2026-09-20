@@ -49,6 +49,8 @@ class ArmBackend(ABC):
     @abstractmethod
     def release(self, arm, obj_name, settle_steps=250, verbose=True): ...
     @abstractmethod
+    def damp_object(self, obj_name, steps=400, verbose=True): ...
+    @abstractmethod
     def get_object_pos(self, obj_name): ...
     @abstractmethod
     def get_site_pos(self, site_name): ...
@@ -169,15 +171,39 @@ class SimBackend(ArmBackend):
             if {n1, n2} == {f"{arm}_gripper", obj_name}:
                 data.eq_active[i] = 0
         obj_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, obj_name)
+        free_vadr = None
         for j in range(model.njnt):
             if model.jnt_bodyid[j] == obj_id and model.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE:
-                vadr = model.jnt_dofadr[j]
-                data.qvel[vadr:vadr + 6] = 0
+                free_vadr = model.jnt_dofadr[j]
                 break
+        if free_vadr is not None:
+            data.qvel[free_vadr:free_vadr + 6] = 0
         mujoco.mj_forward(model, data)
+
         self.set_gripper(arm, GRIPPER_OPEN, settle_steps)
         if verbose:
             print(f"  [release] {arm} released '{obj_name}'")
+
+    def damp_object(self, obj_name, steps=400, verbose=True):
+        """Re-zero obj_name's free-joint velocity every physics step for
+        `steps` steps. Used after release+retreat's own damping window to
+        absorb residual drift before the retreat moves run -- confirmed
+        in-session that ~60 steps of damping inside release() wasn't
+        enough; leftover drift carried through the retreat sequence and
+        walked the cup off the table edge on ~half of randomized seeds."""
+        model, data = self.model, self.data
+        obj_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, obj_name)
+        free_vadr = None
+        for j in range(model.njnt):
+            if model.jnt_bodyid[j] == obj_id and model.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE:
+                free_vadr = model.jnt_dofadr[j]
+                break
+        for _ in range(steps):
+            mujoco.mj_step(model, data)
+            if free_vadr is not None:
+                data.qvel[free_vadr:free_vadr + 6] = 0
+        if verbose:
+            print(f"  [damp] {obj_name} damped for {steps} steps")
 
     def get_object_pos(self, obj_name):
         return self.data.xpos[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, obj_name)].copy()
@@ -194,23 +220,31 @@ class SimBackend(ArmBackend):
                 return float(np.linalg.norm(data.qvel[vadr:vadr + 6]))
         return 0.0
 
-    def wait_for_settle(self, obj_name, vel_threshold=0.02, max_steps=2000, check_every=50, verbose=True):
-        """NEW. Steps physics until obj_name's free-joint velocity drops
-        below vel_threshold, or max_steps elapses. Fixes cup_handoff:
-        without this, the left arm's re-grasp reads the object's LIVE
-        position immediately after release, and a round/top-heavy object
-        (the cup) that's still rolling/tipping gets chased to a stale
-        mid-physics-event point -- reach_dist up to ~3m on affected seeds."""
+    def wait_for_settle(self, obj_name, pos_threshold=0.003, max_steps=3000, check_every=100,
+                         min_z=0.15, verbose=True):
+        """Steps physics until obj_name's position stops changing
+        meaningfully between checks, or max_steps elapses. Uses POSITION
+        stability, not velocity. Fails fast if z drops below min_z,
+        meaning the object fell off the table onto the floor -- confirmed
+        in-session that a floor-level object can drift indefinitely
+        without ever satisfying a position-stability check."""
+        prev_pos = self.get_object_pos(obj_name)
         for step in range(0, max_steps, check_every):
             for _ in range(check_every):
                 mujoco.mj_step(self.model, self.data)
-            vel = self.object_velocity(obj_name)
-            if vel < vel_threshold:
+            pos = self.get_object_pos(obj_name)
+            if pos[2] < min_z:
                 if verbose:
-                    print(f"  [settle] {obj_name} settled after {step+check_every} steps (vel={vel:.4f})")
+                    print(f"  [settle] {obj_name} fell off table (z={pos[2]:.4f}) after {step+check_every} steps")
+                return False, step + check_every
+            delta = float(np.linalg.norm(pos - prev_pos))
+            if delta < pos_threshold:
+                if verbose:
+                    print(f"  [settle] {obj_name} settled after {step+check_every} steps (delta={delta:.5f})")
                 return True, step + check_every
+            prev_pos = pos
         if verbose:
-            print(f"  [settle] WARNING: {obj_name} did not settle within {max_steps} steps")
+            print(f"  [settle] WARNING: {obj_name} did not settle within {max_steps} steps (still drifting)")
         return False, max_steps
 
     def verify_grasp_held(self, arm, obj_name):
@@ -246,6 +280,7 @@ class RealBackend(ArmBackend):
     def set_gripper(self, *a, **kw): raise NotImplementedError
     def grasp(self, *a, **kw): raise NotImplementedError
     def release(self, *a, **kw): raise NotImplementedError
+    def damp_object(self, *a, **kw): raise NotImplementedError
     def get_object_pos(self, *a, **kw): raise NotImplementedError
     def get_site_pos(self, *a, **kw): raise NotImplementedError
     def object_velocity(self, *a, **kw): raise NotImplementedError

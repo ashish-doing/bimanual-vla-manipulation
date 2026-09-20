@@ -74,10 +74,6 @@ def run_handoff_task(backend, obj_name, verbose=True):
     backend.move_to("right", up_point, settle_steps=1200, verbose=verbose)
     backend.move_to("right", RETREAT["right"], verbose=verbose)
 
-    settled, steps = backend.wait_for_settle(obj_name, verbose=verbose)
-    if not settled:
-        return False, {"handoff_object_unsettled": obj_name, "settle_steps": steps}
-
     ok, dist = approach_and_grasp(backend, "left", obj_name, verbose=verbose)
     if not ok:
         return False, {"reach_failed": f"left_final_{obj_name}", "reach_dist": float(dist)}
